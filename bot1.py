@@ -8,7 +8,7 @@ from threading import Thread
 import urllib.parse
 
 # --- الإعدادات (تم ضبطها بناءً على بياناتك) ---
-TOKEN = "7954952627:AAEM7OZahtpHnUhUZqM8RBNlYbjUsyOcTng"
+TOKEN = "7954952627:AAErZjFmf8n5GAvi35lEPvL-WRgLs4qVKfg"
 # معالجة الباسورد لضمان عمل قاعدة البيانات
 safe_pass = urllib.parse.quote_plus("10010207966##")
 MONGO_URI = f"mongodb+srv://abdalrzagDB:{safe_pass}@cluster0.fighoyv.mongodb.net/?retryWrites=true&w=majority"
