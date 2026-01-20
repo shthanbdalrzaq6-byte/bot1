@@ -1,2 +1,6 @@
-﻿flask
-requests
+pyTelegramBotAPI
+yt-dlp
+pymongo
+dnspython
+flask
+
