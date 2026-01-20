@@ -7,12 +7,12 @@ from flask import Flask
 from threading import Thread
 import urllib.parse
 
-# --- الإعدادات (تم ضبطها بناءً على بياناتك) ---
+# --- الإعدادات ---
 TOKEN = "7954952627:AAErZjFmf8n5GAvi35lEPvL-WRgLs4qVKfg"
 # معالجة الباسورد لضمان عمل قاعدة البيانات
 safe_pass = urllib.parse.quote_plus("10010207966##")
 MONGO_URI = f"mongodb+srv://abdalrzagDB:{safe_pass}@cluster0.fighoyv.mongodb.net/?retryWrites=true&w=majority"
-ADMIN_ID = 5524416062  # الـ ID الخاص بك
+ADMIN_ID = 5524416062  
 
 bot = telebot.TeleBot(TOKEN)
 
@@ -24,14 +24,19 @@ try:
 except Exception as e:
     print(f"DB Error: {e}")
 
-# --- سيرفر الويب للبقاء حياً ---
+# --- سيرفر الويب للبقاء حياً على Render ---
 app = Flask('')
+
 @app.route('/')
-def home(): return "Bot is Online ✅"
+def home():
+    return "Bot is Online ✅"
 
-def run(): app.run(host='0.0.0.0', port=10000)
+def run():
+    # Render يطلب استخدام المنفذ من متغيرات البيئة
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host='0.0.0.0', port=port)
 
-# --- وظائف الآدمن والتحكم ---
+# --- وظائف الآدمن ---
 @bot.message_handler(commands=['admin'])
 def admin_panel(message):
     if message.from_user.id == ADMIN_ID:
@@ -44,9 +49,11 @@ def admin_panel(message):
 # --- التحميل والمعالجة ---
 @bot.message_handler(commands=['start'])
 def start(message):
-    # تسجيل المستخدم
-    if not users_col.find_one({"user_id": message.chat.id}):
-        users_col.insert_one({"user_id": message.chat.id, "name": message.from_user.first_name})
+    try:
+        if not users_col.find_one({"user_id": message.chat.id}):
+            users_col.insert_one({"user_id": message.chat.id, "name": message.from_user.first_name})
+    except:
+        pass
     bot.reply_to(message, "🚀 أرسل رابط الفيديو (TikTok, IG, YT) وسأرسله لك فوراً!")
 
 @bot.message_handler(func=lambda m: m.text and m.text.startswith("http"))
@@ -54,13 +61,15 @@ def download_video(message):
     url = message.text
     msg = bot.reply_to(message, "⏳ جاري التحميل والرفع... يرجى الانتظار.")
     
-    # إعدادات التحميل السريع والخفيف
+    if not os.path.exists('downloads'):
+        os.makedirs('downloads')
+
     ydl_opts = {
-        'format': 'best[ext=mp4]/best', # اختيار أفضل صيغة MP4 متوافقة
+        'format': 'best[ext=mp4]/best',
         'outtmpl': f'downloads/{message.chat.id}_%(id)s.%(ext)s',
         'quiet': True,
         'no_warnings': True,
-        'max_filesize': 45000000, # تحديد 45 ميجا لضمان سرعة الرفع على تليجرام
+        'max_filesize': 45000000, 
     }
 
     try:
@@ -71,18 +80,19 @@ def download_video(message):
             with open(file_path, 'rb') as video:
                 bot.send_video(message.chat.id, video, caption="✅ تم التحميل بواسطة بوتك")
             
-            if os.path.exists(file_path): os.remove(file_path) # حذف الملف لتوفير المساحة
+            if os.path.exists(file_path):
+                os.remove(file_path)
             bot.delete_message(message.chat.id, msg.message_id)
             
     except Exception as e:
         bot.edit_message_text(f"❌ فشل التحميل: الملف كبير جداً أو الرابط غير مدعوم.", message.chat.id, msg.message_id)
 
 # --- تشغيل البوت ---
-if __name__ == "__name__":
-    if not os.path.exists('downloads'): os.makedirs('downloads')
+if __name__ == "__main__":
+    # تشغيل سيرفر الويب في خلفية الكود
     Thread(target=run).start()
     
-    # تنظيف الجلسات القديمة لمنع الـ Conflict
-    bot.remove_webhook()
     print("Bot is Live! 🚀")
+    # تنظيف الجلسات القديمة وتشغيل التلقي المستمر
+    bot.remove_webhook()
     bot.infinity_polling(timeout=60, long_polling_timeout=30)
